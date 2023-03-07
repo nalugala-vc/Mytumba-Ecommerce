@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 
 const Schema = mongoose.Schema;
-const Sequelize = require('sequelize');
 
 const productSchema = new Schema({
     name:{
@@ -17,9 +16,17 @@ const productSchema = new Schema({
         type: Array,
         default: [],
     },
+    price:{
+        type:mongoose.Types.Decimal128,
+        required: true,
+    },
     reviews:{
         type: Array,
         default: [],
+    },
+    quantity:{
+        type: Number,
+        required: true,
     },
     discount: Boolean,
     discountPrice:{

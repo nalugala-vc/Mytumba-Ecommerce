@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
+import Product from '../models/Product.js';
 
 /*REGISTER NEW USER*/
 
@@ -79,6 +80,7 @@ export const login = async (req, res) => {
     }
 }
 
+/*GET ALL USERS*/
 export const getAllUsers = async(req, res) => {
     let users;
 
@@ -92,5 +94,63 @@ export const getAllUsers = async(req, res) => {
         return res.status(200).json({users});
     } catch (error) {
         return res.status(400).json({error: error.message});
+    }
+}
+
+/*ADD TO CART FUNCTIONALITY */
+
+export const addToCart = async (req, res) => {
+    const { userId, productId} = req.params;
+
+    try {
+        let user = await User.findById({userId});
+        let product = await Product.findById({productId});
+
+        if(user.cart.includes(product)){
+            return res.status(409).json({message: "Product already in cart"});
+        }else{
+            user.cart.push(productId)
+        }
+
+        await user.save();
+
+        const cartProducts =  await Promise.all(
+            user.cart.map((id) => User.findById(id))
+        );
+
+        const formattedProducts = cartProducts.map(
+            ({_id,name,pictures,price,quantity}) => {
+                return {_id,name,pictures,price,quantity}
+            }
+        );
+
+        return res.status(200).json(formattedProducts);
+    } catch (error) {
+        return res.status(500).json({error: error.message});
+    }
+}
+
+/*GET USERS CART ITEMS */
+
+export const getCartItems = async (req, res) => {
+    const {userId} = req.params;
+    let user;
+
+    try {
+        user = await User.findById(userId);
+        
+        const cartItems = await Promise.all(
+            user.cart.map((productId=>Product.findById(productId)))
+        );
+
+        const formattedProducts = cartItems.map(
+            ({_id,name,pictures,price,quantity})=>{
+                return {_id,name,pictures,price,quantity}
+            }
+        );
+
+        return res.status(200).json({formattedProducts})
+    } catch (error) {
+        return res.status(500).json({message: error.message});
     }
 }
