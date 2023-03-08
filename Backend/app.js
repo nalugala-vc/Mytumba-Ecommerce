@@ -5,6 +5,8 @@ import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from "url";
 import { signUpUser } from './controllers/user.js';
+import { newSeller } from './controllers/seller.js';
+import sellerRouter from './routes/seller.js';
 
 /*CONFIGURATION*/
 const app = express();
@@ -25,10 +27,15 @@ const upload = multer({storage});
 
 /*ROUTES WITH FILES*/
 app.post('/user/register',upload.single('profilePicture'), signUpUser);
+app.post('/seller/register',upload.fields([
+    { name: 'profilePicture', maxCount: 1 },
+    { name: 'storePicture', maxCount: 1 }
+]), newSeller);
 
 /*ROUTES */
 app.use(express.json());
 app.use("/user",userRouter);
+app.use("/seller",sellerRouter);
 
 /*DATABASE CONNECTION*/
 mongoose.connect('mongodb+srv://VenessaChebukwa:Romulemia01@cluster0.hq8psm1.mongodb.net/MytumbaEcommerce?retryWrites=true&w=majority').then(()=> app.listen(5000)).then(()=>console.log("Connected to database and listening on port 5000"));
