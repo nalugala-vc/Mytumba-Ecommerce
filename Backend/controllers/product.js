@@ -1,5 +1,6 @@
 import Product from '../models/Product.js';
 import Seller from '../models/Seller.js';
+import mongoose from 'mongoose';
 
 export const addNewProduct = async (req,res) => {
     const {
@@ -15,14 +16,14 @@ export const addNewProduct = async (req,res) => {
         shipping,
         sizes,
         colors,
-        categories,
+        category,
+        subCategories,
+        seller,
     } = req.body;
-
-    const sellerId = req.params;
 
     try {
 
-        let seller = await Seller.findById(sellerId);
+        let existingSeller = await Seller.findById(seller);
         const newProduct = new Product({
             name,
             description,
@@ -34,16 +35,19 @@ export const addNewProduct = async (req,res) => {
             discount,
             discountPrice,
             shipping,
+            category,
+            subCategories,
             sizes,
             colors,
+            seller,
         });
 
         const session = await mongoose.startSession();
         session.startTransaction();
         await newProduct.save({session});
 
-        seller.products.push(newProduct);
-        await seller.save({session});
+        existingSeller.products.push(newProduct);
+        await existingSeller.save({session});
         await session.commitTransaction();
 
         return res.status(200).json({message: 'Product added successfully'});

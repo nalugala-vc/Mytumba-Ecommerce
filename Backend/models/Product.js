@@ -28,9 +28,13 @@ const productSchema = new Schema({
         type: Number,
         required: true,
     },
-    discount: Boolean,
+    discount: {
+        type: Boolean,
+        default: false,
+    },
     discountPrice:{
-        type:mongoose.Types.Decimal128
+        type:mongoose.Types.Decimal128,
+        default: 0.0,
     },
     shipping:{
         type:mongoose.Types.Decimal128
@@ -43,9 +47,13 @@ const productSchema = new Schema({
         type: Array,
         default: [],
     },
-    categories:{
-        type: Array,
-        default: [],
+    category:{
+        type: String,
+        required: true,
+    },
+    subCategories:{
+        type: String,
+        required: true,
     },
     seller:{
         type: mongoose.Types.ObjectId,

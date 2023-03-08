@@ -1,6 +1,7 @@
 import Seller from "../models/Seller.js";
 import bcrypt from "bcrypt";
 import Product from "../models/Product.js";
+import jwt from "jsonwebtoken";
 
 /* REGISTER NEW SELLER */
 export const newSeller = async (req, res) => {
@@ -68,14 +69,14 @@ export const loginSeller = async (req, res) => {
             return res.status(404).json({message: 'Seller not found. Sign up instead'});
         }
 
-        let isMatch = await bcrypt.compare(seller.email, password);
+        let isMatch = await bcrypt.compare(password ,seller.password);
 
         if(!isMatch) return res.status(404).json({message: 'Invalid credentials'});
 
         const token = jwt.sign({id: seller._id}, "jkdshjbdjbnfgsjdkfdvjkajf");
-        delete user.password;
+        delete seller.password;
 
-        return res.status(200).json({message:"Login successful"});
+        return res.status(200).json({message:"Login successful", token: token, user:seller});
 
     } catch (error) {
         return res.status(500).json({error: error.message});
@@ -85,7 +86,7 @@ export const loginSeller = async (req, res) => {
 /*GET SELLER PRODUCTS*/
 
 export const sellerProducts = async (req, res) => {
-    const sellerId = req.params;
+    const sellerId = req.params.id;
 
     try {
         let seller = await Seller.findById(sellerId);
