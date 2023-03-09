@@ -1,5 +1,6 @@
 import Product from '../models/Product.js';
 import Seller from '../models/Seller.js';
+import User from '../models/User.js';
 import mongoose from 'mongoose';
 
 /*ADD NEW PRODUCT*/
@@ -105,15 +106,21 @@ export const updateProduct = async (req, res) => {
 }
 /*DELETE PRODUCT*/
 export const deleteProduct = async (req, res) => {
-    const productId = req.params.ProductId;
-
+    const productId = req.params.productId;
     try {
-        const product = await Product.findByIdAndDelete(productId);
+        const product = await Product.findOne({ _id: productId });
 
-        if(!product) return res.status(404).json({error:"Product does not exist"});
+        if (!product) {
+            return res.status(404).json({message:'Product not found'});
+        }
 
-        return res.status(200).json({message:"Product deleted successfully"});
+        const sellerId = product.seller.toString();
 
+        await Product.deleteOne({ _id: productId });
+        await User.updateMany({ cart: { $elemMatch: { product: productId } } }, { $pull: { cart: { product: productId } } });
+        await Seller.updateOne({ _id: sellerId }, { $pull: { products: productId } });
+
+        return res.status(200).json({message: "Product Deleted sucessfully"});
     } catch (error) {
         return res.status(500).json({error: error.message});
     }

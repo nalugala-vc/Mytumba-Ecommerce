@@ -112,7 +112,7 @@ export const addToCart = async (req, res) => {
         if(user.cart.some(item => item.product === productId)){
             return res.status(409).json({message: "Product already in cart"});
         }else{
-            user.cart.push({product:productId, quantity:1, price:product.price});
+            user.cart.push({_id: productId, product: productId, quantity: 1, price: product.price});
         }
 
         await user.save();
