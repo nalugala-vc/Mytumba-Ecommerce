@@ -8,6 +8,9 @@ import { signUpUser } from './controllers/user.js';
 import { newSeller } from './controllers/seller.js';
 import sellerRouter from './routes/seller.js';
 import productRouter from './routes/product.js';
+import adminRouter from './routes/admin.js';
+import { admins } from './data/index.js';
+import Admin from './models/Admin.js';
 
 /*CONFIGURATION*/
 const app = express();
@@ -38,6 +41,11 @@ app.use(express.json());
 app.use("/user",userRouter);
 app.use("/seller",sellerRouter);
 app.use("/product",productRouter);
+app.use("/admin",adminRouter);
 
+/*ADD DATA ONE TIME */
+
+    // Admin.insertMany(admins);
+    
 /*DATABASE CONNECTION*/
 mongoose.connect('mongodb+srv://VenessaChebukwa:Romulemia01@cluster0.hq8psm1.mongodb.net/MytumbaEcommerce?retryWrites=true&w=majority').then(()=> app.listen(5000)).then(()=>console.log("Connected to database and listening on port 5000"));

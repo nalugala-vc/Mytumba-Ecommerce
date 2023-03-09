@@ -7,6 +7,10 @@ const adminSchema = new Schema({
         type: String,
         required: true,
     },
+    profilePicture: {
+        type: String,
+        default:""
+    },
     email: {
         type: String,
         unique: true,

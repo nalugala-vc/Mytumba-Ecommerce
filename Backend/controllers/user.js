@@ -4,6 +4,7 @@ import User from "../models/User.js";
 import jwt from "jsonwebtoken";
 import Product from '../models/Product.js';
 import shortid from 'shortid';
+import mongoose from 'mongoose';
 
 /*REGISTER NEW USER*/
 
@@ -101,13 +102,14 @@ export const getAllUsers = async(req, res) => {
 /*ADD TO CART FUNCTIONALITY */
 
 export const addToCart = async (req, res) => {
-    const { userId, productId} = req.params;
+    const  productId  = req.body.productId;
+    const userId = req.body.userId;
 
     try {
-        let user = await User.findById({userId});
-        let product = await Product.findById({productId});
+        let user = await User.findById(userId);
+        let product = await Product.findById(productId);
 
-        if(user.cart.includes(product)){
+        if(user.cart.some(item => item.product === productId)){
             return res.status(409).json({message: "Product already in cart"});
         }else{
             user.cart.push({product:productId, quantity:1, price:product.price});
@@ -133,38 +135,21 @@ export const addToCart = async (req, res) => {
 
 /*UPDATE PRODUCT QUANTITY*/
 export const updateCartItemQuantity = async (req, res) => {
-    const { userId, productId} = req.params;
-    const quantity = req.body;
+    const userId = req.body.userId.toString();
+    const productId = req.body.productId;
+    const quantity = req.body.quantity;
 
     try {
-        const user = await User.findById(userId);
-        const product = await Product.findById(productId);
+        let product = await Product.findById(productId);
 
-        const cartIndex = user.cart.findIndex(item => item.product === productId);
-
-        if (cartIndex === -1) {
-            return res.status(404).json({ message: "Product not found in cart" });
-        }
-
-        user.cart[cartIndex].quantity = quantity;
-        
-        const newPrice = quantity*product.price;
-
-        user.cart[cartIndex].price = newPrice;
-
-        await user.save();
-
-        const cartProducts =  await Promise.all(
-            user.cart.map((item) => Product.findById(item.product))
+        const price = quantity*product.price
+        const result = await User.findOneAndUpdate(
+            { _id: userId, 'cart.product': productId },
+            { $set: { 'cart.$.quantity': quantity, 'cart.$.price':price } },
+            { new: true }
         );
 
-        const formattedProducts = cartProducts.map(
-            ({_id,name,pictures,price,quantity}) => {
-                return {_id,name,pictures,price,quantity}
-            }
-        );
-
-        return res.status(200).json(formattedProducts);
+        return res.status(200).json(result);
     } catch (error) {
         return res.status(500).json({error: error.message});
     }
@@ -173,35 +158,57 @@ export const updateCartItemQuantity = async (req, res) => {
 
 /*REMOVE FROM CART*/
 
-export const removeCartProduct = async (req, res) => {
-    const {userId,productId} = req.params;
+export const deleteCartItem = async (req, res) => {
+    const userId = req.body.userId;
+    const productId = req.body.productId;
 
     try {
         const user = await User.findById(userId);
-        const product = await Product.findById(productId);
+    
+        const cartIndex = user.cart.findIndex(item => item.product.toString() === productId);
+    
+        if (cartIndex === -1) {
+            return res.status(404).json({ message: "Product not found in cart" });
+        }
+    
+        user.cart.splice(cartIndex, 1);
+    
+        await user.save();
+    
+        const cartProducts =  await Promise.all(
+            user.cart.map((item) => Product.findById(item.product))
+        );
 
-        user.cart.filter((id)=> id!== productId);
+        const formattedProducts = cartProducts.map(
+            ({_id,name,pictures,price,quantity}) => {
+            const cartItem = user.cart.find(item => item.product.toString() === _id.toString());
+            return {_id,name,pictures,price,quantity: cartItem.quantity, totalPrice: cartItem.price}
+            }
+        );
 
-        user.save();
-
-        return res.status(200).json({message: 'Product removed successfully'});
+        return res.status(200).json({message: "Item deleted successfully",newItems: formattedProducts});
     } catch (error) {
-        return res.status(500).json({error:error.message});
+        return res.status(500).json({error: error.message});
     }
 }
+
 
 
 /*GET USERS CART ITEMS */
 
 export const getCartItems = async (req, res) => {
-    const {userId} = req.params;
+    const userId = req.params.id;
     let user;
 
     try {
         user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
         
         const cartItems = await Promise.all(
-            user.cart.map((productId)=>Product.findById(productId))
+            user.cart.map(({ product }) => Product.findById(new mongoose.Types.ObjectId(product)))
         );
 
         const formattedProducts = cartItems.map(

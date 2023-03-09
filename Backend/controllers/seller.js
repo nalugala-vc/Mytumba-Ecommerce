@@ -3,6 +3,21 @@ import bcrypt from "bcrypt";
 import Product from "../models/Product.js";
 import jwt from "jsonwebtoken";
 
+/*GET ALL SELLERS */
+export const getAllSellers = async (req, res) =>{
+
+    try {
+        const allSellers = await Seller.find();
+
+        if(!allSellers) return res.status(404).json({message:"No sellers found"});
+
+
+        return res.status(200).json({allSellers});
+    } catch (error) {
+        
+    }
+}
+
 /* REGISTER NEW SELLER */
 export const newSeller = async (req, res) => {
 
