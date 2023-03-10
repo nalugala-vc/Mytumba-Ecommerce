@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import Product from '../models/Product.js';
 import shortid from 'shortid';
 import mongoose from 'mongoose';
+import Seller from '../models/Seller.js';
 
 /*REGISTER NEW USER*/
 
@@ -14,7 +15,6 @@ export const signUpUser = async (req, res) => {
         lastName,
         email,
         password,
-        profilePicture,
         phoneNumber,
         county,
         address,
@@ -22,6 +22,8 @@ export const signUpUser = async (req, res) => {
         wishlist,
         orders,
     } = req.body;
+
+    const profilePicture = req.files.profilePicture[0];
 
     let existingUser;
 
@@ -227,32 +229,68 @@ export const getCartItems = async (req, res) => {
 
 function generateRandomString() {
   const timestamp = Date.now();
-  const randomString = shortid.generate();
 
-  return `${timestamp}${randomString}`;
+  return timestamp;
 }
 
+/*{
+    "error": "Cannot destructure property '_id' of 'object null' as it is null."
+}*/
 
 /* ORDER THE PRODUCTS IN CART */
 export const orderProducts = async (req, res) => {
-    const orderId = generateRandomString();
-
-    const userId = req.params;
-
+    const orderNumber = generateRandomString();
+    const userId = req.body.userId;
     try {
-        const user = await User.findById(userId);
+        const user = await User.findOne({ _id: userId });
 
-        const cartItems = await Promise.all(
-            user.cart.map((productId=>Product.findById(productId)))
-        );
+        // Get the product documents from the database based on the IDs in the user's cart
+        const products = await Product.find({ _id: { $in: user.cart } }).lean();
 
-        const formattedProducts = cartItems.map(
-            ({_id,name,pictures,price,quantity})=>{
-                return {_id,name,pictures,price,quantity}
-            }
-        );
-
-    } catch (error) {
+        const product  = await Product.find({ _id: { $in: user.cart } });
+        if(user.cart.length === 0) return res.status(404).json({ message:"No items in your cart" });
         
+        // Create an array of order items for the user
+        const orderItems = await Promise.all(
+            products.map(async (product) => {
+                const cartItem = user.cart.find(item => item.product.toString() === product._id.toString());
+                const updatedSeller = await Seller.findByIdAndUpdate(
+                product.seller,
+                {
+                    $push: {
+                        orders: {
+                            orderId: orderNumber,
+                            productId: product._id,
+                            status:"pending",
+                            },
+                    },
+                },
+                { new: true } // return the updated document
+                );
+              const updatedProduct = await Product.findByIdAndUpdate(
+                product._id,
+                { $inc: { quantity: - cartItem.quantity, } }, // decrement the quantity by 1
+                { new: true } // return the updated document
+              );
+              return {
+                orderId: orderNumber,
+                productId: product._id,
+                sellerId: product.seller,
+                status: "pending", // include the updated seller orders in the order item object
+              };
+            })
+          );
+        
+        // Push the order items to the user's orders field
+        await User.updateOne({ _id: userId }, { $push: { orders: { $each: orderItems } }, cart : [] });
+
+        return res.status(200).json({messages: "Order placed successfully"})
+    } catch (error) {
+        return res.status(500).json({error:error.message});
     }
 }
+
+/* FUNCTIONALITY TO ADD*/
+//user can cancel order...just updates the order status
+
+

@@ -125,3 +125,16 @@ export const deleteProduct = async (req, res) => {
         return res.status(500).json({error: error.message});
     }
 };
+
+/*GET ALL PRODUCTS */
+export const getAllProduct = async (req, res) => {
+    try {
+        let allProducts = await Product.find();
+
+        if(!allProducts) return res.status(404).json({message: "No Product found"});
+
+        return res.status(200).json({allProducts});
+    } catch (error) {
+        return res.status(500).json({error: error.message});
+    }
+}
