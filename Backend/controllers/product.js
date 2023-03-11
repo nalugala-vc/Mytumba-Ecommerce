@@ -104,6 +104,7 @@ export const updateProduct = async (req, res) => {
         return res.status(404).json({error: error.message});
     }
 }
+
 /*DELETE PRODUCT*/
 export const deleteProduct = async (req, res) => {
     const productId = req.params.productId;

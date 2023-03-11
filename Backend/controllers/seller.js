@@ -98,6 +98,47 @@ export const loginSeller = async (req, res) => {
     }
 }
 
+/*UPDATE SELLER */
+export const updateSeller = async (req, res) => {
+    const sellerId = req.params.sellerId;
+    const {
+        firstName,
+        lastName,
+        email,
+        password,
+        phoneNumber,
+        county,
+        address,
+        storeName,
+        storeDescription,
+    } = req.body;
+
+    const profilePicture = req.files.profilePicture[0].filename;
+    const storePicture = req.files.storePicture[0].filename;
+
+    try {
+        const seller = await Seller.findByIdAndUpdate(
+            sellerId,{
+                firstName,
+                lastName,
+                email,
+                password,
+                phoneNumber,
+                county,
+                address,
+                storeName,
+                storeDescription,
+                profilePicture,
+                storePicture
+            },{new : true}
+        )
+
+        return res.status(200).json(seller);
+    } catch (error) {
+        return res.status(500).json({error: error.message})
+    }
+}
+
 /*GET SELLER PRODUCTS*/
 
 export const sellerProducts = async (req, res) => {

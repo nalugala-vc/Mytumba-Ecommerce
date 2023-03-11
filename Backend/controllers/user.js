@@ -23,7 +23,7 @@ export const signUpUser = async (req, res) => {
         orders,
     } = req.body;
 
-    const profilePicture = req.files.profilePicture[0];
+    const profilePicture =req.file.filename;
 
     let existingUser;
 
@@ -81,6 +81,44 @@ export const login = async (req, res) => {
 
     } catch (error) {
         return res.status(500).json({error: error.message});
+    }
+}
+
+/* EDIT USER */
+export const editUser = async (req, res) => {
+    const userId = req.params.userId;
+    const {
+        firstName,
+        lastName,
+        email,
+        password,
+        phoneNumber,
+        county,
+        address,
+    } = req.body;
+
+    const profilePicture =req.file.filename;
+
+    try {
+        const salt = await bcrypt.genSalt();
+        const hashedPassword = bcrypt.hashSync(password, salt);
+
+        const user = await User.findByIdAndUpdate(userId,
+            {
+                firstName,
+                lastName,
+                email,
+                password:hashedPassword,
+                profilePicture,
+                phoneNumber,
+                county,
+                address,
+            },{new : true}
+        )
+
+        return res.status(200).json(user);
+    } catch (error) {
+        return res.status(500).json({error: error.message})
     }
 }
 
@@ -261,6 +299,7 @@ export const orderProducts = async (req, res) => {
                         orders: {
                             orderId: orderNumber,
                             productId: product._id,
+                            quantity: cartItem.quantity,
                             status:"pending",
                             },
                     },
@@ -276,6 +315,7 @@ export const orderProducts = async (req, res) => {
                 orderId: orderNumber,
                 productId: product._id,
                 sellerId: product.seller,
+                quantity: cartItem.quantity,
                 status: "pending", // include the updated seller orders in the order item object
               };
             })
@@ -290,7 +330,42 @@ export const orderProducts = async (req, res) => {
     }
 }
 
-/* FUNCTIONALITY TO ADD*/
-//user can cancel order...just updates the order status
+/* CANCEL ORDER */
+//user can cancel order...just updates the order status to cancelled , add back the quantity to the products
+export const cancelOrder = async (req , res , next) => {
+    const orderNumber = parseInt(req.params.orderNumber);
+    const userId = req.body.userId;
+
+    try {
+        let user = await User.findOneAndUpdate(
+            { "_id": userId, "orders.orderId": orderNumber },
+            { $set: { "orders.$.status": "canceled" } },{new:true }
+        );
+        
+        if(!user) return res.status(404).json({message: "User not found",orderNumber});
+
+        let order = user.orders.find(order => order.orderId === orderNumber);
+        let productId = order.productId;
+        let quantity = Number(order.quantity);
+
+        if (isNaN(quantity)) {
+            throw new Error("Invalid quantity value: " + order.quantity);
+        }
+
+        let products = await Product.findOneAndUpdate(
+            {"_id": productId },{ $inc: { quantity: + quantity, } }
+        );
+
+        let seller = await Seller.findOneAndUpdate({
+            "orders.orderId": orderNumber
+        }, { $set: { "orders.$.status": "canceled"}});
+
+        return res.status(200).json(user)
+    } catch (error) {
+        return res.status(500).json({ error : error.message });
+    }
+}
+
+
 
 

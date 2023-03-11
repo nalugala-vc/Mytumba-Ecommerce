@@ -4,8 +4,8 @@ import userRouter from './routes/user.js';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from "url";
-import { signUpUser } from './controllers/user.js';
-import { newSeller } from './controllers/seller.js';
+import { signUpUser, editUser } from './controllers/user.js';
+import { newSeller, updateSeller } from './controllers/seller.js';
 import sellerRouter from './routes/seller.js';
 import productRouter from './routes/product.js';
 import adminRouter from './routes/admin.js';
@@ -35,6 +35,11 @@ app.post('/seller/register',upload.fields([
     { name: 'profilePicture', maxCount: 1 },
     { name: 'storePicture', maxCount: 1 }
 ]), newSeller);
+app.patch('/seller/:sellerId/update',upload.fields([
+    { name: 'profilePicture', maxCount: 1 },
+    { name: 'storePicture', maxCount: 1 }
+]), updateSeller);
+app.patch('/user/:userId/update',upload.single('profilePicture'), editUser);
 
 /*ROUTES */
 app.use(express.json());
